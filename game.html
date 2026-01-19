@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>走进故宫</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ccc;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      background-color: #fff;
+      border: 2px solid #ccc;
+      border-bottom: none;
+    }
+    .subtabs {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .subtab {
+      padding: 8px 15px;
+      cursor: pointer;
+      margin-right: 5px;
+      border-radius: 5px;
+      background-color: #eee;
+    }
+    .subtab:hover {
+      background-color: #ddd;
+    }
+    .content {
+      padding: 20px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+      min-height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tabs">
+    <div class="tab active" id="tab-palace">走进故宫</div>
+  </div>
+
+  <div class="subtabs" id="subtabs">
+    <div class="subtab" data-name="清明上河图">清明上河图</div>
+    <div class="subtab" data-name="韩熙载夜宴图">韩熙载夜宴图</div>
+    <div class="subtab" data-name="千里江山图">千里江山图</div>
+    <div class="subtab" data-name="五牛图">五牛图</div>
+    <div class="subtab" data-name="写生珍禽图">写生珍禽图</div>
+  </div>
+
+  <div class="content" id="content">
+    请选择一幅画
+  </div>
+
+  <script>
+    const subtabs = document.querySelectorAll('.subtab');
+    const content = document.getElementById('content');
+
+    subtabs.forEach(subtab => {
+      subtab.addEventListener('click', () => {
+        const name = subtab.dataset.name;
+
+        if (name === '清明上河图') {
+          // 跳转到你之前的主界面
+          window.location.href = '/index8.0.html'; // 替换为你的主界面路径
+        } else if(name === '韩熙载夜宴图'){
+          window.location.href = '/b.html';
+        } else if(name === '千里江山图'){
+          window.location.href = '/c.html';
+        } else if(name === '五牛图'){
+          window.location.href = '/d.html';
+        } else if(name === '写生珍禽图'){
+          window.location.href = '/e.html';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

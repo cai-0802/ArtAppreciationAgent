@@ -1,0 +1,1645 @@
+<!--保留了每个页面的聊天记录豆包-->
+<!--每个页面的自动话语成功-->
+<!--学伴页面的切换-->
+<!--评述与拓展的切换-->
+<!--保留了每个页面的聊天记录豆包-->
+<!--每个页面的自动话语成功-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美术欣赏智能体 - 清明上河图</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2E8B57',
+                        secondary: '#CC6600',
+                        user: '#0066CC',
+                        gray: '#666666',
+                        lightgray: '#f5f5f5',
+                        error: '#DC143C'
+                    },
+                    fontFamily: {
+                        simhei: ['SimHei', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .tab-content {
+                @apply hidden;
+            }
+            .tab-content.active {
+                @apply block;
+            }
+            .sub-tab-content {
+                @apply hidden;
+            }
+            .sub-tab-content.active {
+                @apply block;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            ul.list-disc li {
+                @apply mb-1;
+            }
+            ol.list-decimal li {
+                @apply mb-1;
+            }
+            p.my-2 {
+                @apply h-2; /* 段落间距更舒适 */
+            }
+            .image-link {
+                @apply text-secondary underline hover:text-secondary/80 transition;
+            }
+            #image-preview-modal {
+                @apply backdrop-blur-sm;
+            }
+            #close-preview {
+                @apply transition-transform duration-300 hover:scale-110;
+            }
+        }
+    </style>
+</head>
+<body class="font-simhei bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <header class="mb-6">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-primary text-center">“走”进清明上河图</h1>
+        </header>
+
+        <!-- 主标签页导航 -->
+        <div class="border-b border-gray-300 mb-6">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="main-tabs" role="tablist">
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 border-primary text-primary rounded-t-lg" id="desc-tab" data-tab="description" type="button" role="tab">
+                        初识画作
+                    </button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 rounded-t-lg" id="analysis-tab" data-tab="analysis" type="button" role="tab">
+                        了解技法
+                    </button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 rounded-t-lg" id="interpret-tab" data-tab="interpretation" type="button" role="tab">
+                        走进画作
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button class="inline-block p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 rounded-t-lg" id="evaluate-tab" data-tab="evaluation" type="button" role="tab">
+                        评述与扩展
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：智能体聊天区域 -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md h-full flex flex-col">
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="font-semibold text-gray-800">智能体</h3>
+                    </div>
+
+                    <!-- 聊天历史区域 -->
+                    <div id="chat-history" class="flex-1 overflow-y-auto p-4 bg-lightgray scrollbar-hide"
+                         style="min-height: 400px; max-height: 600px;">
+                        <!-- 聊天内容会动态添加到这里 -->
+                    </div>
+
+                    <!-- 输入区域 -->
+                    <div class="p-4 border-t border-gray-200">
+                        <textarea id="user-input" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                  placeholder="输入消息..."></textarea>
+                        <div class="mt-2 flex justify-between items-center">
+                            <div class="text-sm text-gray-500">
+                                点击麦克风按钮开始录音
+                            </div>
+                            <div class="flex space-x-2">
+                                <!-- 语音按钮 -->
+                                <button id="voice-button" type="button" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition flex items-center">
+                                    <i class="fa fa-microphone mr-2"></i>
+                                    <span>开始录音</span>
+                                </button>
+                                <!-- 发送按钮 -->
+                                <button id="send-button" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition">
+                                    发送
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 状态栏 -->
+                    <div class="p-2 text-sm text-gray-600 bg-gray-50">
+                        <span id="status-label">就绪</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：学习资源区域 -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-md h-full">
+
+                    <!-- 描述标签页内容~~~~~~~~~~ -->
+                    <div id="description-content" class="tab-content active p-6">
+
+                        <!-- 图片区域 -->
+                        <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                            <h3 class="font-semibold mb-3">点击查看画作</h3>
+                            <div class="text-center">
+                                <img src="/static/清明上河图.jpg" alt="清明上河图" class="max-w-full h-auto rounded cursor-pointer mx-auto" onclick="openImageModal2('/static/市区街道.jpg')">
+                            </div>
+                        </div>
+
+                        <!-- 视频区域 -->
+                        <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                            <h3 class="font-semibold mb-3">点击播放介绍视频</h3>
+                            <div class="text-center">
+                                <img src="/static/清明上河图视频背景.png" alt="清明上河图" class="max-w-full h-auto rounded cursor-pointer mx-auto" onclick="openVideoModal('/static/清明上河图.mp4')">
+                            </div>
+                        </div>
+
+                        <!-- 网页区域 -->
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <h3 class="font-semibold mb-3">点击走进故宫博物馆</h3>
+                            <a href="https://www.dpm.org.cn/collection/paint/228226.html" target="_blank" class="block group">
+								<img src="/static/故宫1.jpg"
+									 alt="故宫博物院《清明上河图》"
+									 class="w-full rounded-lg border
+											transition-transform duration-300
+											group-hover:scale-105
+											group-hover:shadow-lg" />
+							</a>
+                        </div>
+
+                        <!-- 模态框（放大查看图片） -->
+                        <div id="image-modal2" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                            <img id="modal-img2" src="" alt="预览" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">
+                            <button class="absolute top-6 right-6 text-white text-3xl font-bold" onclick="closeImageModal2()">×</button>
+                        </div>
+
+                        <!-- 视频模态框（放大播放视频） -->
+                        <div id="video-modal"
+                             class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+
+                            <video id="modal-video"
+                                   class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                                   controls
+                                   autoplay>
+                                <source src="" type="video/mp4">
+                                您的浏览器不支持视频播放
+                            </video>
+
+                            <button class="absolute top-6 right-6 text-white text-3xl font-bold"
+                                    onclick="closeVideoModal()">×</button>
+                        </div>
+
+                    </div>
+
+                    <!-- 分析标签页内容~~~~~~~~~~ -->
+					<div id="analysis-content" class="tab-content p-6">
+						<div class="mb-6">
+							<h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-primary text-center mb-2">技法小测试</h2>
+						</div>
+
+						<!-- 分析子标签页 -->
+						<div class="border border-gray-200 rounded-lg overflow-hidden">
+							<div class="flex border-b border-gray-200" id="analysis-sub-tabs">
+								<button class="flex-1 py-3 px-4 text-center font-bold text-lg text-gray-500 hover:text-gray-700" data-subtab="mounting" onclick="switchSubTabs(this, '#analysis-sub-tabs')">
+                                    第一题
+                                </button>
+								<button class="flex-1 py-3 px-4 text-center font-bold text-lg text-gray-500 hover:text-gray-700" data-subtab="composition" onclick="switchSubTabs(this, '#analysis-sub-tabs')">
+									第二题
+								</button>
+								<button class="flex-1 py-3 px-4 text-center font-bold text-lg text-gray-500 hover:text-gray-700" data-subtab="brush" onclick="switchSubTabs(this, '#analysis-sub-tabs')">
+									第三题
+								</button>
+							</div>
+
+							<!-- 第一题内容：装裱方式（图片选择） -->
+                            <div class="p-4 sub-tab-content active" id="mounting-content">
+                                <!-- 题目 -->
+                                <p class="font-medium mb-4">
+                                    题目：观察以下图片，哪一幅体现的是<span class="text-blue-600 font-semibold">中国画长卷</span>的装裱形式？
+                                </p>
+                                <!-- 图片选项区域 -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <!-- 选项 A -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 A</div>
+                                        <img src="/static/装裱方式A.png"
+                                             alt="装裱方式 A"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+
+                                    <!-- 选项 B -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 B</div>
+                                        <img src="/static/装裱方式B.jpeg"
+                                             alt="装裱方式 B"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+
+                                    <!-- 选项 C -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 C</div>
+                                        <img src="/static/装裱方式C.jpeg"
+                                             alt="装裱方式 C"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+                                </div>
+
+                                <!-- 选择按钮 -->
+                                <div class="flex justify-center gap-6 mb-4">
+                                    <button class="mounting-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="A"
+                                            data-correct="true">
+                                        选择 A
+                                    </button>
+
+                                    <button class="mounting-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="B"
+                                            data-correct="false">
+                                        选择 B
+                                    </button>
+
+                                    <button class="mounting-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="C"
+                                            data-correct="false">
+                                        选择 C
+                                    </button>
+                                </div>
+
+                                <!-- 作答反馈 -->
+                                <div id="mounting-success"
+                                     class="hidden mt-4 p-3 rounded bg-green-50 text-green-700">
+                                    🎉 回答正确！你准确识别了中国画长卷的装裱形式。
+                                </div>
+
+                                <div id="mounting-error"
+                                     class="hidden mt-4 p-3 rounded bg-red-50 text-red-700">
+                                    ❌ 回答错误，请查看下方知识解析理解正确答案。
+                                </div>
+
+                                <!-- 知识点解析 -->
+                                <div id="mounting-knowledge"
+                                     class="hidden mt-6 p-4 rounded bg-blue-50 text-blue-800">
+                                    <h4 class="font-semibold mb-3">📚 装裱方式知识点解析</h4>
+                                    <p class="mb-2">
+                                        <span class="font-medium">✔ A 选项（长卷）：</span>
+                                        长卷：又称手卷，横向窄长，像一幅可以边展开边欣赏的长画，看完后能卷起收好。
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="font-medium">❌ B 选项（扇面）：</span>
+                                        扇面：形状为扇形或圆形，常用于装饰扇子。
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="font-medium">❌ C 选项（斗方）：</span>
+                                        斗方：画面近似正方形，适合小幅作品。
+                                    </p>
+                                </div>
+
+                                <!-- 重置按钮 -->
+                                <button id="reset-mounting"
+                                        class="mt-4 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+                                    重新答题
+                                </button>
+                            </div>
+
+                            <!-- 第二题内容：构图技法 -->
+                            <div class="p-4 sub-tab-content" id="composition-content">
+
+                                <p class="font-medium mb-4">
+                                    题目：观察左右两幅图的特点，下列哪幅画采用了<span class="text-blue-600 font-semibold">散点透视</span>？
+                                </p>
+
+                                <!-- 图片对比区 -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <!-- 选项 A -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 A</div>
+                                        <img src="/static/观察技法A.png"
+                                             alt="散点透视示例"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+
+                                    <!-- 选项 B -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 B</div>
+                                        <img src="/static/观察技法B.png"
+                                             alt="焦点透视示例"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+                                </div>
+
+                                <!-- 选择按钮 -->
+                                <div class="flex justify-center gap-12 mb-4">
+                                    <button class="composition-option px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="A"
+                                            data-correct="true">
+                                        选择 A
+                                    </button>
+
+                                    <button class="composition-option px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="B"
+                                            data-correct="false">
+                                        选择 B
+                                    </button>
+                                </div>
+
+                                <!-- 作答反馈 -->
+                                <div id="composition-status"
+                                     class="hidden mt-4 p-3 rounded bg-green-50 text-green-700">
+                                    🎉 回答正确！你准确识别了散点透视的构图方式。
+                                </div>
+
+                                <div id="composition-error"
+                                     class="hidden mt-4 p-3 rounded bg-red-50 text-red-700">
+                                    ❌ 回答错误，请查看下方知识解析理解正确答案。
+                                </div>
+
+                                <!-- 知识点解析 -->
+                                <div id="composition-knowledge"
+                                     class="hidden mt-6 p-4 rounded bg-blue-50 text-blue-800">
+
+                                    <h4 class="font-semibold mb-3">📚 透视知识解析</h4>
+
+                                    <p class="mb-2">
+                                        <span class="font-medium">✔ A 选项（散点透视）：</span>
+                                        散点透视就像“边走边看”，画面中没有固定的视点或消失点，
+                                        不同景物从不同角度呈现，非常适合长卷绘画。
+                                    </p>
+
+                                    <p class="mb-4">
+                                        <span class="font-medium">❌ B 选项（焦点透视）：</span>
+                                        焦点透视强调“站在固定位置观看”，所有平行线汇聚到同一个消失点，
+                                        常见于西方写实绘画。
+                                    </p>
+
+                                    <!-- 原理示意图 -->
+                                    <h5 class="font-medium mb-2">【透视原理示意图】</h5>
+
+                                    <div class="space-y-4">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="font-medium mb-2">散点透视：边走边看</div>
+                                            <img src="/static/1-解析.png"
+                                                 alt="散点透视原理图"
+                                                 class="mx-auto rounded border"
+                                                 style="max-height: 250px;" />
+                                        </div>
+
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="font-medium mb-2">焦点透视：固定位置观看</div>
+                                            <img src="/static/2-解析.png"
+                                                 alt="焦点透视原理图"
+                                                 class="mx-auto rounded border"
+                                                 style="max-height: 250px;" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 重置按钮 -->
+                                <button id="reset-composition"
+                                        class="mt-6 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm">
+                                    重新答题
+                                </button>
+                            </div>
+
+                            <!-- 第三题内容：笔墨技法 -->
+                            <div class="p-4 sub-tab-content hidden" id="brush-content">
+                                <p class="font-medium mb-4">
+                                    题目：观察以下图片，下列哪幅画采用了<span class="text-blue-600 font-semibold">白描</span>的绘画技法？
+                                </p>
+
+                                <!-- 图片展示区 -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <!-- 选项 A -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 A</div>
+                                        <img src="./static/绘画技法A.png"
+                                             alt="白描示例"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+
+                                    <!-- 选项 B -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 B</div>
+                                        <img src="./static/绘画技法B.jpeg"
+                                             alt="工笔示例"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+
+                                    <!-- 选项 C -->
+                                    <div class="border rounded-lg p-3 text-center">
+                                        <div class="font-medium mb-2">选项 C</div>
+                                        <img src="./static/绘画技法C.png"
+                                             alt="写意示例"
+                                             class="mx-auto rounded border cursor-pointer hover:shadow-md transition"
+                                             style="max-height: 200px;" />
+                                    </div>
+                                </div>
+
+                                <!-- 选择按钮 -->
+                                <div class="flex justify-center gap-6 mb-4">
+                                    <button class="brush-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="A"
+                                            data-correct="true">
+                                        选择 A
+                                    </button>
+
+                                    <button class="brush-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="B"
+                                            data-correct="false">
+                                        选择 B
+                                    </button>
+
+                                    <button class="brush-option-btn px-6 py-2 border rounded hover:bg-gray-50"
+                                            data-option="C"
+                                            data-correct="false">
+                                        选择 C
+                                    </button>
+                                </div>
+
+                                <!-- 作答反馈 -->
+                                <div id="brush-success" class="hidden mt-4 p-3 rounded bg-green-50 text-green-700">
+                                    🎉 回答正确！你准确识别了白描的绘画技法。
+                                </div>
+                                <div id="brush-error" class="hidden mt-4 p-3 rounded bg-red-50 text-red-700">
+                                    ❌ 回答错误，请查看解析理解白描的特点。
+                                </div>
+
+                                <!-- 知识点解析 -->
+                                <div id="brush-knowledge" class="hidden mt-6 p-4 rounded bg-blue-50 text-blue-800">
+                                    <h4 class="font-semibold mb-3">📚 笔墨技法知识点解析</h4>
+                                    <p class="mb-2">
+                                        <span class="font-medium">✔ A 选项（白描）：</span>
+                                        只用墨线勾勒形体，不施颜色，是中国画的基础技法。
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="font-medium">❌ B 选项（工笔）：</span>
+                                        描绘细致，设色严谨，注重细节的精准表现。
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="font-medium">❌ C 选项（写意）：</span>
+                                        用笔概括，重在意境，不求形似求神似。
+                                    </p>
+                                </div>
+
+                                <!-- 重新答题 -->
+                                <button id="reset-brush" class="mt-4 px-4 py-2 border rounded hover:bg-gray-50 text-sm">
+                                    重新答题
+                                </button>
+                            </div>
+						</div>
+					</div>
+
+                    <!-- 解释标签页内容~~~~~~~~~~ -->
+                    <div id="interpretation-content" class="tab-content p-6">
+                        <!-- 解释子标签页 -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="flex border-b border-gray-200" id="interpretation-sub-tabs">
+                                <button class="flex-1 py-3 px-4 text-center font-medium text-primary border-b-2 border-primary" data-subtab="author" onclick="switchSubTabs(this, '#interpretation-sub-tabs')">
+                                    作者面对面
+                                </button>
+                                <button class="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700" data-subtab="resonance" onclick="switchSubTabs(this, '#interpretation-sub-tabs')">
+                                    画里的小发现
+                                </button>
+                            </div>
+
+                            <!-- 作者面对面内容 -->
+                            <div class="p-4 sub-tab-content active" id="author-content">
+                                <img src="/static/张择端有字.png" alt="张择端有字" class="max-w-full h-auto rounded cursor-pointer mx-auto">
+                                <!-- 同伴按钮 -->
+                                <div class="flex justify-center mb-8">
+                                    <button id="author-zhang-btn"
+                                        class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">
+                                        点击这里，与作者聊一聊
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 画里的小发现 -->
+                            <div class="p-4 sub-tab-content overflow-y-auto max-h-[80vh]" id="resonance-content">
+                                <!-- 同伴按钮 -->
+                                <div class="flex justify-center mb-8">
+                                    <button id="companion-btn"
+                                        class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition">
+                                        点击这里，接下去你将与智能学伴进行交流
+                                    </button>
+                                </div>
+
+                                <!-- 三张图片垂直排列 -->
+                                <div class="space-y-6">
+                                    <!-- 汴河两岸 -->
+                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                        <div class="p-4 bg-gray-50 border-b border-gray-200">
+                                            <h3 class="font-semibold text-gray-800">点击查看郊外景象</h3>
+                                        </div>
+                                        <div class="flex flex-col md:flex-row items-start p-4">
+                                            <img src="/static/汴河两岸.jpg" alt="汴河两岸"
+                                                 class="w-full md:w-1/2 rounded-lg shadow-md cursor-pointer hover:opacity-90 transition"
+                                                 onclick="openImageModal('/static/汴河两岸.jpg')">
+                                        </div>
+                                    </div>
+
+                                    <!-- 郊外景象 -->
+                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                        <div class="p-4 bg-gray-50 border-b border-gray-200">
+                                            <h3 class="font-semibold text-gray-800">点击查看汴河两岸</h3>
+                                        </div>
+                                        <div class="flex flex-col md:flex-row items-start p-4">
+                                            <img src="/static/郊外景象.jpg" alt="郊外景象"
+                                                 class="w-full md:w-1/2 rounded-lg shadow-md cursor-pointer hover:opacity-90 transition"
+                                                 onclick="openImageModal('/static/郊外景象.jpg')">
+                                        </div>
+                                    </div>
+
+                                    <!-- 市区街道 -->
+                                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                        <div class="p-4 bg-gray-50 border-b border-gray-200">
+                                            <h3 class="font-semibold text-gray-800">点击查看市区街道</h3>
+                                        </div>
+                                        <div class="flex flex-col md:flex-row items-start p-4">
+                                            <img src="/static/市区街道.jpg" alt="市区街道"
+                                                 class="w-full md:w-1/2 rounded-lg shadow-md cursor-pointer hover:opacity-90 transition"
+                                                 onclick="openImageModal('/static/市区街道.jpg')">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 模态框（放大查看图片） -->
+                                <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+                                    <img id="modal-img" src="" alt="预览" class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl">
+                                    <button class="absolute top-6 right-6 text-white text-3xl font-bold" onclick="closeImageModal()">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 评价标签页内容~~~~~~~~~~ -->
+                    <div id="evaluation-content" class="tab-content p-6">
+                        <!-- 解释子标签页 -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="flex border-b border-gray-200" id="evaluation-sub-tabs">
+                                <button
+                                    class="flex-1 py-3 px-4 text-center font-medium text-primary border-b-2 border-primary"
+                                    data-subtab="pingshu"
+                                    onclick="switchSubTabs(this, '#evaluation-sub-tabs')">
+                                    作品评述
+                                </button>
+
+                                <button
+                                    class="flex-1 py-3 px-4 text-center font-medium text-gray-500 hover:text-gray-700"
+                                    data-subtab="tuozhan"
+                                    onclick="switchSubTabs(this, '#evaluation-sub-tabs')">
+                                    作品拓展
+                                </button>
+                            </div>
+
+                            <!-- 作品评述内容 -->
+                            <div class="p-4 sub-tab-content active" id="pingshu-content">
+                                <img src="/static/新-评述1.png" alt="新-评述1" class="w-4/5 h-auto rounded cursor-pointer mx-auto">
+                                <!-- 图片上传与文字识别 -->
+                                <div class="border border-gray-200 rounded-lg p-4 mb-6">
+                                    <h3 class="font-semibold mb-4 text-gray-800">工具区域</h3>
+
+                                    <div class="mb-4">
+                                        <button id="upload-image" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">
+                                            上传图片识别文字
+                                        </button>
+                                        <input type="file" id="image-upload" accept="image/*" class="hidden">
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="block text-sm font-medium text-gray-700">识别结果：</label>
+                                    </div>
+
+                                    <div class="flex">
+                                        <textarea id="ocr-result" rows="4" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="这里将显示图片识别的文字内容..."></textarea>
+                                        <button id="copy-ocr" class="px-4 py-2 bg-gray-100 border border-gray-300 border-l-0 rounded-r-md hover:bg-gray-200">
+                                            复制
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 作品拓展内容 -->
+                            <div class="p-4 sub-tab-content overflow-y-auto max-h-[80vh]" id="tuozhan-content">
+                                <img src="/static/新-拓展1.png" alt="新-拓展1" class="w-4/5 h-auto rounded cursor-pointer mx-auto">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新增：图片预览模态框（全局唯一） -->
+        <div id="image-preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+            <img id="preview-img" src="" alt="图片预览" class="max-h-[95vh] max-w-[95vw] object-contain rounded-lg shadow-2xl">
+            <button id="close-preview" class="absolute top-6 right-6 text-white text-4xl font-bold cursor-pointer hover:text-gray-300 transition">×</button>
+        </div>
+
+    </div>
+
+    <!-- 保留原有HTML结构，仅替换<script>标签内的代码 -->
+    <script>
+        // 全局变量 - 升级：为子标签也保存独立的聊天记录
+        let chatData = {
+            description: { conversationId: null, messages: [] },
+            analysis: { conversationId: null, messages: [] },
+            interpretation: {
+                author: { conversationId: null, messages: [], botId: "7556995581193895955",autoSent: false }, // 作者面对面
+                resonance: { conversationId: null, messages: [], botId: "7570687375001894912" ,autoSent: false}  // 画里的小发现
+            },
+            evaluation: {
+                pingshu: { conversationId: null, messages: [], botId: "7569471134757273651", autoSent: false }, // 作品评述
+                tuozhan: { conversationId: null, messages: [], botId: "7568392100153802762", autoSent: false }  // 作品拓展（你的目标智能体ID）
+            },
+        };
+        let currentTab = 'description'; // 当前激活的主标签页
+        let currentSubTab = ''; // 新增：当前激活的子标签页
+        let currentBotId = "7556890552520982580"; // 默认BOT_ID
+        let currentAutoSent = false; // 新增：修复未定义的currentAutoSent变量
+        let hasSentInterpretationAutoMsg = false; // 防重复发送标记
+        let zhangZeduanIntroSent = false;
+
+
+        // 新增：根据当前标签页获取智能体显示名称
+        function getSenderName() {
+            // 作者面对面页面 → 显示 张择端
+            if (currentTab === 'interpretation' && currentSubTab === 'author') {
+                return '张择端';
+            }
+            // 其他所有页面 → 显示 智能学伴
+            else {
+                return '智能学伴';
+            }
+        }
+
+
+
+        // 语音识别相关变量
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        // DOM元素
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const statusLabel = document.getElementById('status-label');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 主标签页切换 - 修改核心逻辑
+            document.querySelectorAll('#main-tabs button').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+
+                    // 1. 保存当前标签页的聊天记录和会话ID
+                    saveCurrentChatData();
+
+                    // 2. 更新标签样式和显示内容
+                    switchMainTab(tab, tabName);
+
+                    // 3. 更新当前标签和Bot ID
+                    currentTab = tabName;
+                    switch(tabName) {
+                        case 'description':
+                            currentBotId = "7556890552520982580";
+                            currentSubTab = ''; // 清空子标签标记
+                            break;
+                        case 'analysis':
+                            currentBotId = "7568385966793195563";
+                            currentSubTab = ''; // 清空子标签标记
+                            break;
+
+                        case 'interpretation':
+                            // 切到走进画作主标签时，默认选中作者面对面
+                            currentSubTab = 'author';
+                            // 强制设置作者面对面的智能体ID
+                            currentBotId = chatData.interpretation.author.botId;
+                            // 首次进入作者面对面，自动发送消息（只发一次）
+<!--                            if (chatData.interpretation.author.messages.length === 0 && !chatData.interpretation.author.autoSent) {-->
+
+<!--                                const authorMessage = "接下来，你将和“张择端”进行对话";-->
+<!--                                appendMessage('你', authorMessage, true);-->
+<!--                                setTimeout(() => {-->
+<!--                                    sendMessage(authorMessage);-->
+<!--                                }, 300);-->
+<!--                                chatData.interpretation.author.autoSent = true; // 标记为已发送-->
+<!--                                hasSentInterpretationAutoMsg = true; // 全局标记-->
+<!--                            }-->
+                            break;
+
+                        case 'evaluation':
+                            // 切到评述与扩展主标签时，默认选中作品评述
+                            currentSubTab = 'pingshu';
+                            // 强制设置作品评述的智能体ID
+                            currentBotId = chatData.evaluation.pingshu.botId;
+                            // 恢复作品评述的聊天记录
+                            restoreEvaluationSubTabData(currentSubTab);
+                            break;
+                    }
+
+                    // 4. 恢复新标签页的聊天记录
+                    if (tabName === 'interpretation') {
+                        // 走进画作主标签，恢复子标签的聊天记录
+                        restoreInterpretationSubTabData(currentSubTab);
+                    } else {
+                        // 其他主标签，按原来的逻辑恢复
+                        restoreChatData(tabName);
+                    }
+
+                    // 5. 如果是新标签页且没有聊天记录，发送欢迎消息
+                    if (chatData[tabName].messages.length === 0 && tabName !== 'interpretation') {
+                        sendWelcomeMessage(tabName);
+                    }
+                });
+            });
+
+            // 发送按钮点击事件
+            sendButton.addEventListener('click', () => {
+                const message = userInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                    userInput.value = '';
+                }
+            });
+
+            // 回车键发送消息
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    const message = userInput.value.trim();
+                    if (message) {
+                        sendMessage(message);
+                        userInput.value = '';
+                    }
+                }
+            });
+
+            // 图片上传按钮
+            document.getElementById('upload-image').addEventListener('click', () => {
+                document.getElementById('image-upload').click();
+            });
+
+            // 图片上传处理
+            document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+
+            // 复制OCR结果
+            document.getElementById('copy-ocr').addEventListener('click', copyOcrResult);
+
+            // 请求AI评述
+            document.getElementById('request-review')?.addEventListener('click', requestAiReview);
+
+            // 同伴按钮
+            document.getElementById("companion-btn")?.addEventListener("click", async () => {
+                const btn = document.getElementById("companion-btn");
+                btn.disabled = true;
+                btn.innerText = "正在与同伴建立连接...";
+                try {
+                    const message = "你好，我是你的同伴。";
+
+                    // 适配子标签会话ID
+                    let conversationId = null;
+                    if (currentTab === 'interpretation' && currentSubTab) {
+                        conversationId = chatData.interpretation[currentSubTab].conversationId;
+                    } else if (currentTab === 'evaluation' && currentSubTab) {
+                        conversationId = chatData.evaluation[currentSubTab].conversationId;
+                    } else {
+                        conversationId = chatData[currentTab].conversationId;
+                    }
+
+                    // 在聊天区域显示用户消息
+                    appendMessage('你', message, true);
+
+                    const response = await fetch("/chat", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            bot_id: currentBotId,
+                            message: message,
+                            conversation_id: conversationId
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (data.conversation_id) {
+                        if (currentTab === 'interpretation' && currentSubTab) {
+                            chatData.interpretation[currentSubTab].conversationId = data.conversation_id;
+                        } else if (currentTab === 'evaluation' && currentSubTab) {
+                            chatData.evaluation[currentSubTab].conversationId = data.conversation_id;
+                        } else {
+                            chatData[currentTab].conversationId = data.conversation_id;
+                        }
+                    }
+
+                    if (data.reply) {
+                        appendMessage(getSenderName(), data.reply);
+                    } else {
+                        appendMessage(getSenderName(), "未收到同伴回应。");
+                    }
+                } catch (e) {
+                    appendMessage(getSenderName(), `网络错误：${e.message}，请稍后重试。`);
+                    console.error("同伴按钮错误：", e);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "点击这里，你现在的身份是同伴";
+                }
+            });
+
+            // 作者按钮
+            document.getElementById("author-zhang-btn")?.addEventListener("click", async () => {
+                const btn = document.getElementById("author-zhang-btn");
+                btn.disabled = true;
+                btn.innerText = "正在与同伴建立连接...";
+                try {
+                    const message = "你现在的身份是张择端。";
+
+                    // 适配子标签会话ID
+                    let conversationId = null;
+                    if (currentTab === 'interpretation' && currentSubTab) {
+                        conversationId = chatData.interpretation[currentSubTab].conversationId;
+                    } else {
+                        conversationId = chatData[currentTab].conversationId;
+                    }
+
+                    // 在聊天区域显示用户消息
+                    appendMessage('你', message, true);
+
+                    const response = await fetch("/chat", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            bot_id: "7556995581193895955",
+                            message: message,
+                            conversation_id: conversationId
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (data.conversation_id) {
+                        if (currentTab === 'interpretation' && currentSubTab) {
+                            chatData.interpretation[currentSubTab].conversationId = data.conversation_id;
+                        } else {
+                            chatData[currentTab].conversationId = data.conversation_id;
+                        }
+                    }
+
+                    if (data.reply) {
+                        appendMessage(getSenderName(), data.reply);
+                    } else {
+                        appendMessage(getSenderName(), "未收到同伴回应。");
+                    }
+                } catch (e) {
+                    appendMessage(getSenderName(), `网络错误：${e.message}，请稍后重试。`);
+                    console.error("作者按钮错误：", e);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "点击这里，与作者聊一聊";
+                }
+            });
+
+            // 分析子标签页切换
+            document.querySelectorAll('#analysis-sub-tabs button').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchSubTabs(tab, '#analysis-sub-tabs');
+                });
+            });
+
+            // 解释子标签页切换（升级：切换智能体+保存/恢复聊天记录+自动发消息）
+            document.querySelectorAll('#interpretation-sub-tabs button').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const newSubTab = tab.dataset.subtab;
+
+                    // 1. 保存当前子标签的聊天记录
+                    if (currentSubTab) {
+                        saveInterpretationSubTabData(currentSubTab);
+                    }
+
+                    // 2. 切换子标签样式
+                    switchSubTabs(tab, '#interpretation-sub-tabs');
+
+                    // 3. 更新当前子标签和智能体ID（严格按要求设置）
+                    currentSubTab = newSubTab;
+                    if (newSubTab === 'author') {
+                        // 作者面对面：固定用ID 7556995581193895955
+                        currentBotId = chatData.interpretation.author.botId;
+                        // 作者面对面：自动发送指定消息
+                        if (!chatData.interpretation.author.autoSent) {
+                            const authorMessage = "接下来，你将和“张择端”进行对话";
+<!--                            appendMessage('你', authorMessage, true);-->
+                            setTimeout(() => {
+                                sendMessage(authorMessage);
+                            }, 300);
+                            chatData.interpretation.author.autoSent = true; // 标记为已发送
+                        }
+                    } else if (newSubTab === 'resonance') {
+                        // 画里的小发现：固定用ID 7570687375001894912
+                        currentBotId = chatData.interpretation.resonance.botId;
+                        // 自动发送指定消息（只发一次）
+                        if (!chatData.interpretation.resonance.autoSent) {
+                            const autoMessage = "接下来，你将与'智能学伴'一起观察画面";
+<!--                            appendMessage('你', autoMessage, true);-->
+                            setTimeout(() => {
+                                sendMessage(autoMessage);
+                            }, 300);
+                            chatData.interpretation.resonance.autoSent = true; // 标记为已发送
+                        }
+                    }
+
+                    // 4. 恢复新子标签的聊天记录
+                    restoreInterpretationSubTabData(newSubTab);
+                });
+            });
+
+            // 评述与拓展子标签页切换（修复核心逻辑）
+            // 评述与拓展子标签页切换（修复核心逻辑）
+            document.querySelectorAll('#evaluation-sub-tabs button').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const newSubTab = tab.dataset.subtab;
+
+                    // 1. 保存当前子标签的聊天记录（如果是evaluation下的子标签）
+                    if (currentTab === 'evaluation' && currentSubTab) {
+                        saveEvaluationSubTabData(currentSubTab);
+                    }
+
+                    // 2. 切换子标签样式（原有逻辑保留）
+                    switchSubTabs(tab, '#evaluation-sub-tabs');
+
+                    // 3. 更新当前子标签和智能体ID（关键修复：从chatData读取botId）
+                    currentSubTab = newSubTab;
+                    if (newSubTab === 'pingshu') {
+                        // 作品评述：使用chatData中配置的botId
+                        currentBotId = chatData.evaluation.pingshu.botId;
+                        console.log("切换到作品评述，当前BotID：", currentBotId); // 调试日志
+                        // 自动发送“现在进入评述文本写作阶段”（只发一次）
+                        if (!chatData.evaluation.pingshu.autoSent) {
+                            const autoMessage = "现在进入评述文本写作阶段";
+                            // 先在对话框显示这句话
+<!--                            appendMessage('你', autoMessage, true);-->
+                            // 延迟300毫秒发送给后端（避免卡顿）
+                            setTimeout(() => {
+                                sendMessage(autoMessage);
+                            }, 300);
+                            // 标记为已发送，避免重复发
+                            chatData.evaluation.pingshu.autoSent = true;
+                        }
+                    } else if (newSubTab === 'tuozhan') {
+                        // 作品拓展：使用chatData中配置的目标智能体ID
+                        currentBotId = chatData.evaluation.tuozhan.botId;
+                        console.log("切换到作品拓展，当前BotID：", currentBotId); // 调试日志
+                        // 自动发送“现在进入文生图模式”（只发一次）
+                        if (!chatData.evaluation.tuozhan.autoSent) {
+                            const autoMessage = "现在进入文生图模式";
+                            // 先在对话框显示这句话
+<!--                            appendMessage('你', autoMessage, true);-->
+                            // 延迟300毫秒发送给后端（避免卡顿）
+                            setTimeout(() => {
+                                sendMessage(autoMessage);
+                            }, 300);
+                            // 标记为已发送，避免重复发
+                            chatData.evaluation.tuozhan.autoSent = true;
+                        }
+                    }
+
+                    // 4. 恢复新子标签的聊天记录
+                    restoreEvaluationSubTabData(newSubTab);
+                });
+            });
+
+            // 第一题（装裱方式）按钮逻辑
+            document.querySelectorAll(".mounting-option-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const isCorrect = btn.dataset.correct === "true";
+                    const status = document.getElementById("mounting-success");
+                    const error = document.getElementById("mounting-error");
+                    const knowledge = document.getElementById("mounting-knowledge");
+
+                    if (isCorrect) {
+                        status.classList.remove("hidden");
+                        error.classList.add("hidden");
+                    } else {
+                        status.classList.add("hidden");
+                        error.classList.remove("hidden");
+                    }
+                    knowledge.classList.remove("hidden");
+                    document.querySelectorAll(".mounting-option-btn").forEach(b => b.disabled = true);
+
+                    document.querySelectorAll(".mounting-option-btn").forEach(b => {
+                        b.classList.remove("bg-green-100", "bg-red-100");
+                        if (b.dataset.correct === "true") b.classList.add("bg-green-100");
+                        else if (b === btn && !isCorrect) b.classList.add("bg-red-100");
+                    });
+                });
+            });
+
+            // 第一题重置按钮
+            document.getElementById("reset-mounting")?.addEventListener("click", () => {
+                const status = document.getElementById("mounting-success");
+                const error = document.getElementById("mounting-error");
+                const knowledge = document.getElementById("mounting-knowledge");
+                status.classList.add("hidden");
+                error.classList.add("hidden");
+                knowledge.classList.add("hidden");
+                document.querySelectorAll(".mounting-option-btn").forEach(b => {
+                    b.disabled = false;
+                    b.classList.remove("bg-green-100", "bg-red-100");
+                });
+            });
+
+            // 第二题（构图技法）按钮逻辑
+            document.querySelectorAll(".composition-option").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const isCorrect = btn.dataset.correct === "true";
+                    const status = document.getElementById("composition-status");
+                    const error = document.getElementById("composition-error");
+                    const knowledge = document.getElementById("composition-knowledge");
+
+                    if (isCorrect) {
+                        status.classList.remove("hidden");
+                        error.classList.add("hidden");
+                    } else {
+                        status.classList.add("hidden");
+                        error.classList.remove("hidden");
+                    }
+                    knowledge.classList.remove("hidden");
+                    document.querySelectorAll(".composition-option").forEach(b => b.disabled = true);
+
+                    document.querySelectorAll(".composition-option").forEach(b => {
+                        b.classList.remove("bg-green-100", "bg-red-100");
+                        if (b.dataset.correct === "true") b.classList.add("bg-green-100");
+                        else if (b === btn && !isCorrect) b.classList.add("bg-red-100");
+                    });
+                });
+            });
+
+            // 第二题重置按钮
+            document.getElementById("reset-composition")?.addEventListener("click", () => {
+                const status = document.getElementById("composition-status");
+                const error = document.getElementById("composition-error");
+                const knowledge = document.getElementById("composition-knowledge");
+                status.classList.add("hidden");
+                error.classList.add("hidden");
+                knowledge.classList.add("hidden");
+                document.querySelectorAll(".composition-option").forEach(b => {
+                    b.disabled = false;
+                    b.classList.remove("bg-green-100", "bg-red-100");
+                });
+            });
+
+            // 第三题（笔墨技法）按钮逻辑
+            document.querySelectorAll(".brush-option-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const isCorrect = btn.dataset.correct === "true";
+                    const status = document.getElementById("brush-success");
+                    const error = document.getElementById("brush-error");
+                    const knowledge = document.getElementById("brush-knowledge");
+
+                    if (isCorrect) {
+                        status.classList.remove("hidden");
+                        error.classList.add("hidden");
+                    } else {
+                        status.classList.add("hidden");
+                        error.classList.remove("hidden");
+                    }
+                    knowledge.classList.remove("hidden");
+                    document.querySelectorAll(".brush-option-btn").forEach(b => b.disabled = true);
+
+                    document.querySelectorAll(".brush-option-btn").forEach(b => {
+                        b.classList.remove("bg-green-100", "bg-red-100");
+                        if (b.dataset.correct === "true") b.classList.add("bg-green-100");
+                        else if (b === btn && !isCorrect) b.classList.add("bg-red-100");
+                    });
+                });
+            });
+
+            // 第三题重置按钮
+            document.getElementById("reset-brush")?.addEventListener("click", () => {
+                const status = document.getElementById("brush-success");
+                const error = document.getElementById("brush-error");
+                const knowledge = document.getElementById("brush-knowledge");
+                status.classList.add("hidden");
+                error.classList.add("hidden");
+                knowledge.classList.add("hidden");
+                document.querySelectorAll(".brush-option-btn").forEach(b => {
+                    b.disabled = false;
+                    b.classList.remove("bg-green-100", "bg-red-100");
+                });
+            });
+
+            // 语音按钮事件
+            document.getElementById('voice-button').addEventListener('click', toggleRecording);
+
+            // 图片预览模态框关闭事件
+            document.getElementById('close-preview').addEventListener('click', closeImagePreview);
+            document.getElementById('image-preview-modal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) closeImagePreview();
+            });
+
+            // 初始发送欢迎消息
+            sendWelcomeMessage('description');
+        });
+
+        // 保存当前标签页的聊天数据
+        function saveCurrentChatData() {
+            if (currentTab === 'evaluation' && currentSubTab) {
+                saveEvaluationSubTabData(currentSubTab);
+                return;
+            }
+            if (currentTab === 'interpretation' && currentSubTab) {
+                saveInterpretationSubTabData(currentSubTab);
+                return;
+            }
+            const messages = [];
+            chatHistory.querySelectorAll('div.mb-4').forEach(msgEl => {
+                const sender = msgEl.querySelector('span.font-bold').textContent.replace('：', '');
+                const content = msgEl.querySelector('div.inline-block').textContent;
+                const isUser = msgEl.classList.contains('text-right');
+                messages.push({ sender, content, isUser });
+            });
+            chatData[currentTab].messages = messages;
+        }
+
+        // 恢复指定标签页的聊天数据
+        function restoreChatData(tabName) {
+            chatHistory.innerHTML = '';
+            const tabData = chatData[tabName];
+            tabData.messages.forEach(msg => {
+                appendMessage(msg.sender, msg.content, msg.isUser, false);
+            });
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // 恢复走进画作子标签的聊天数据
+        function restoreInterpretationSubTabData(subTabName) {
+            chatHistory.innerHTML = '';
+            const subTabData = chatData.interpretation[subTabName];
+            subTabData.messages.forEach(msg => {
+                appendMessage(msg.sender, msg.content, msg.isUser, false);
+            });
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            // 同步autoSent标记
+            currentAutoSent = subTabData.autoSent;
+            // 同步currentBotId
+            currentBotId = subTabData.botId;
+        }
+
+        // 保存走进画作子标签的聊天数据
+        function saveInterpretationSubTabData(subTabName) {
+            const messages = [];
+            chatHistory.querySelectorAll('div.mb-4').forEach(msgEl => {
+                const sender = msgEl.querySelector('span.font-bold').textContent.replace('：', '');
+                const content = msgEl.querySelector('div.inline-block').textContent;
+                const isUser = msgEl.classList.contains('text-right');
+                messages.push({ sender, content, isUser });
+            });
+            // 保存messages、autoSent、conversationId（完整保存）
+            chatData.interpretation[subTabName].messages = messages;
+            // autoSent和conversationId已在其他地方更新，这里保持即可
+        }
+
+        // 修复：恢复评述与扩展子标签的聊天数据（完整恢复）
+        function restoreEvaluationSubTabData(subTabName) {
+            chatHistory.innerHTML = '';
+            const subTabData = chatData.evaluation[subTabName];
+            // 恢复消息记录
+            subTabData.messages.forEach(msg => {
+                appendMessage(msg.sender, msg.content, msg.isUser, false);
+            });
+            // 关键修复：同步currentBotId和autoSent
+            currentBotId = subTabData.botId;
+            currentAutoSent = subTabData.autoSent;
+            // 滚动到底部
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            console.log(`恢复作品${subTabName}数据，BotID：${currentBotId}，是否已发送自动消息：${currentAutoSent}`);
+        }
+
+        // 修复：保存评述与扩展子标签的聊天数据（完整保存）
+        function saveEvaluationSubTabData(subTabName) {
+            const messages = [];
+            chatHistory.querySelectorAll('div.mb-4').forEach(msgEl => {
+                const sender = msgEl.querySelector('span.font-bold').textContent.replace('：', '');
+                const content = msgEl.querySelector('div.inline-block').textContent;
+                const isUser = msgEl.classList.contains('text-right');
+                messages.push({ sender, content, isUser });
+            });
+            // 完整保存：messages + 保留原有autoSent和conversationId
+            chatData.evaluation[subTabName].messages = messages;
+            // autoSent和conversationId已在其他地方更新，这里保持即可
+        }
+
+        // 切换主标签页
+        function switchMainTab(tab, tabName) {
+            document.querySelectorAll('#main-tabs button').forEach(t => {
+                t.classList.remove('border-primary', 'text-primary');
+                t.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+            });
+            tab.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+            tab.classList.add('border-primary', 'text-primary');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-content`).classList.add('active');
+        }
+
+        // 切换子标签页
+        function switchSubTabs(tab, tabContainerSelector) {
+            const moduleRoot = tab.closest('.tab-content');
+            moduleRoot.querySelectorAll(`${tabContainerSelector} button`).forEach(btn => {
+                btn.classList.remove('border-primary', 'text-primary');
+                btn.classList.add('text-gray-500');
+            });
+            tab.classList.add('border-primary', 'text-primary');
+
+            moduleRoot.querySelectorAll('.sub-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            const subTabName = tab.dataset.subtab;
+            moduleRoot.querySelector(`#${subTabName}-content`).classList.add('active');
+        }
+
+        // 语音录音切换
+        function toggleRecording() {
+            const voiceButton = document.getElementById('voice-button');
+            if (!isRecording) {
+                startRecording();
+                voiceButton.innerHTML = '<i class="fa fa-stop"></i> 停止录音';
+                voiceButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                voiceButton.classList.add('bg-red-700', 'hover:bg-red-800');
+                updateStatus('正在录音...');
+            } else {
+                stopRecording();
+                voiceButton.innerHTML = '<i class="fa fa-microphone"></i> 开始录音';
+                voiceButton.classList.remove('bg-red-700', 'hover:bg-red-800');
+                voiceButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                updateStatus('正在转换语音...');
+            }
+            isRecording = !isRecording;
+        }
+
+        // 开始录音
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+                });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+                audioChunks = [];
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendAudioToServer(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                mediaRecorder.start();
+            } catch (error) {
+                alert('无法访问麦克风，请授予权限后重试');
+                updateStatus('录音失败');
+                isRecording = false;
+                toggleRecording();
+            }
+        }
+
+        // 停止录音
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
+        // 发送音频到服务器
+        function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.wav');
+            fetch('/speech-recognition', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.text) {
+                        userInput.value = data.text;
+                        updateStatus('语音识别完成');
+                    } else {
+                        updateStatus('语音识别失败');
+                    }
+                })
+                .catch(err => updateStatus('网络错误'));
+        }
+
+        // 发送欢迎消息
+        function sendWelcomeMessage(tabName) {
+            const welcomeMessages = {
+                'description': '欢迎同学们欣赏《清明上河图》，我是你的小帮手，你可以随时和我互动哦~',
+                'analysis': '在课堂上，老师已经讲解了《清明上河图》的绘画技巧。',
+                'interpretation': '接下来，你将和张择端进行对话',
+                'evaluation': '现在进入评述文本写作阶段'
+            };
+            const welcomeMessage = welcomeMessages[tabName] || '';
+            if (tabName === 'description') {
+                appendMessage(getSenderName(), welcomeMessage);
+            }
+            sendInitialRequest(welcomeMessage);
+        }
+
+        // 发送初始请求（修复evaluation子标签会话ID获取）
+        async function sendInitialRequest(message) {
+            try {
+                updateStatus('正在连接...');
+                let conversationId = null;
+                // 关键修复：支持evaluation子标签的会话ID获取
+                if (currentTab === 'interpretation' && currentSubTab) {
+                    conversationId = chatData.interpretation[currentSubTab].conversationId;
+                } else if (currentTab === 'evaluation' && currentSubTab) {
+                    conversationId = chatData.evaluation[currentSubTab].conversationId;
+                } else {
+                    conversationId = chatData[currentTab].conversationId;
+                }
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        bot_id: currentBotId,
+                        message: message,
+                        conversation_id: conversationId
+                    })
+                });
+                const data = await response.json();
+                if (data.conversation_id) {
+                    if (currentTab === 'interpretation' && currentSubTab) {
+                        chatData.interpretation[currentSubTab].conversationId = data.conversation_id;
+                    } else if (currentTab === 'evaluation' && currentSubTab) {
+                        chatData.evaluation[currentSubTab].conversationId = data.conversation_id;
+                    } else {
+                        chatData[currentTab].conversationId = data.conversation_id;
+                    }
+                }
+                if (data.reply) {
+                    appendMessage(getSenderName(), data.reply);
+                }
+                updateStatus('就绪');
+            } catch (error) {
+                updateStatus('连接失败');
+                console.error("初始请求错误：", error);
+            }
+        }
+
+        // 发送消息（核心修复：支持evaluation子标签）
+        async function sendMessage(message) {
+            appendMessage('你', message, true);
+            updateStatus('正在思考...');
+            sendButton.disabled = true;
+
+            try {
+                // 1. 获取当前会话ID（子标签独立保存）
+                let conversationId = null;
+                if (currentTab === 'interpretation' && currentSubTab) {
+                    conversationId = chatData.interpretation[currentSubTab].conversationId;
+                } else if (currentTab === 'evaluation' && currentSubTab) {
+                    conversationId = chatData.evaluation[currentSubTab].conversationId;
+                } else {
+                    conversationId = chatData[currentTab].conversationId;
+                }
+                console.log(`发送消息：${message}，BotID：${currentBotId}，会话ID：${conversationId}`); // 调试日志
+
+                // 2. 发送请求到后端
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        bot_id: currentBotId,
+                        message: message,
+                        conversation_id: conversationId
+                    })
+                });
+
+                // 3. 解析后端返回的数据
+                const data = await response.json();
+                console.log("后端返回的数据：", data); // 调试日志
+
+                // 4. 保存后端返回的会话ID（保持上下文）
+                if (data.conversation_id) {
+                    if (currentTab === 'interpretation' && currentSubTab) {
+                        chatData.interpretation[currentSubTab].conversationId = data.conversation_id;
+                    } else if (currentTab === 'evaluation' && currentSubTab) {
+                        chatData.evaluation[currentSubTab].conversationId = data.conversation_id;
+                    } else {
+                        chatData[currentTab].conversationId = data.conversation_id;
+                    }
+                }
+
+                // 5. 优先处理后端返回的错误
+                let aiReply = "";
+                if (data.error) {
+                    // 显示具体的错误信息
+                    aiReply = `❌ ${data.error}`;
+                    updateStatus('请求失败');
+                } else if (data.reply) {
+                    aiReply = data.reply; // 正常回复
+                    updateStatus('就绪');
+                } else {
+                    aiReply = "未收到智能体回复，请检查后端配置或网络连接！"; // 兜底提示
+                }
+
+                // 6. 显示智能体回复
+                appendMessage(getSenderName(), aiReply);
+            } catch (error) {
+                // 出错时的提示
+                appendMessage(getSenderName(), `❌ 网络错误：${error.message}，请检查后端服务是否正常运行`);
+                updateStatus('发送失败');
+                console.error("发送消息出错：", error); // 打印错误，方便排查
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        // 添加消息到聊天历史
+        function appendMessage(sender, message, isUser = false, saveToData = true) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `mb-4 ${isUser ? 'text-right' : 'text-left'}`;
+
+            const senderElement = document.createElement('span');
+            senderElement.className = `font-bold ${isUser ? 'text-user' : 'text-secondary'} mr-2`;
+            senderElement.textContent = `${sender}：`;
+
+            const contentElement = document.createElement('div');
+            contentElement.className = `inline-block max-w-[80%] p-3 rounded-lg ${isUser ? 'bg-user/10' : 'bg-secondary/10'}`;
+            contentElement.innerHTML = formatMessageContent(message);
+
+            if (isUser) {
+                messageElement.appendChild(contentElement);
+                messageElement.appendChild(senderElement);
+            } else {
+                messageElement.appendChild(senderElement);
+                messageElement.appendChild(contentElement);
+            }
+
+            chatHistory.appendChild(messageElement);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            if (saveToData) {
+                if (currentTab === 'interpretation' && currentSubTab) {
+                    chatData.interpretation[currentSubTab].messages.push({ sender, content: message, isUser });
+                } else if (currentTab === 'evaluation' && currentSubTab) {
+                    chatData.evaluation[currentSubTab].messages.push({ sender, content: message, isUser });
+                } else {
+                    chatData[currentTab].messages.push({ sender, content: message, isUser });
+                }
+            }
+        }
+
+        // 格式化消息内容
+        function formatMessageContent(text) {
+            if (!text) return '';
+            let formatted = text;
+            // ① 处理 Markdown 链接 [文字](url)
+            formatted = formatted.replace(
+                /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                '<a href="$2" target="_blank" class="text-blue-600 underline hover:text-blue-800">$1</a>'
+            );
+
+            // ② 处理普通网址（不含图片）
+            const urlRegex = /(https?:\/\/[^\s]+)(?![^<]*>)/g;
+            formatted = formatted.replace(urlRegex, (url) => {
+                // 如果是图片链接，交给后面的图片逻辑
+                if (url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return url;
+                return `<a href="${url}" target="_blank" class="text-blue-600 underline hover:text-blue-800">${url}</a>`;
+            });
+            // 处理图片链接
+            const imageRegex = /(https?:\/\/[^\s]+?\.(jpg|jpeg|png|gif|webp))/gi;
+            formatted = formatted.replace(imageRegex, (url) =>
+                `<div class="my-2">
+                    <img src="${url}" alt="图片预览" class="w-32 h-auto rounded cursor-pointer" onclick="openImagePreview('${url}', event)">
+                    <a href="${url}" target="_blank" class="text-xs text-gray-500 block mt-1">查看原图</a>
+                </div>`
+            );
+            // 处理换行
+            formatted = formatted.replace(/\n/g, '<br>');
+            // 处理加粗
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            // 处理列表
+            formatted = formatted.replace(/^- (.*?)(<br>|$)/gm, '<li>$1</li>');
+            formatted = formatted.replace(/(<li>.*?<\/li>)+/g, '<ul class="list-disc pl-5 mb-2">$&</ul>');
+            return formatted;
+        }
+
+        // 更新状态
+        function updateStatus(text) {
+            statusLabel.textContent = text;
+        }
+
+        // 处理图片上传
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                updateStatus('正在处理图片...');
+                const formData = new FormData();
+                formData.append('image', file);
+                fetch('/ocr', { method: 'POST', body: formData })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('ocr-result').value = data.text || `识别失败: ${data.error}`;
+                        updateStatus(data.text ? '处理完成' : '识别失败');
+                    })
+                    .catch(err => {
+                        document.getElementById('ocr-result').value = '上传失败';
+                        updateStatus('上传失败');
+                        console.error("图片上传错误：", err);
+                    });
+            }
+        }
+
+        // 复制OCR结果
+        function copyOcrResult() {
+            const ocrResult = document.getElementById('ocr-result');
+            ocrResult.select();
+            document.execCommand('copy');
+            const btn = document.getElementById('copy-ocr');
+            const originalText = btn.textContent;
+            btn.textContent = '已复制';
+            setTimeout(() => btn.textContent = originalText, 2000);
+        }
+
+        // 请求AI评述
+        function requestAiReview() {
+            const text = document.getElementById('ocr-result').value.trim();
+            sendMessage(`请评述这段文本：${text}`);
+        }
+
+        // 图片模态框函数
+        function openImageModal(src) {
+            const modal = document.getElementById("image-modal");
+            const img = document.getElementById("modal-img");
+            img.src = src;
+            modal.classList.remove("hidden");
+        }
+        function closeImageModal() {
+            document.getElementById("image-modal").classList.add("hidden");
+        }
+        function openImageModal2(src) {
+            const modal = document.getElementById("image-modal2");
+            const img = document.getElementById("modal-img2");
+            img.src = src;
+            modal.classList.remove("hidden");
+        }
+        function closeImageModal2() {
+            document.getElementById("image-modal2").classList.add("hidden");
+        }
+        function openImagePreview(url, event) {
+            event.preventDefault();
+            const modal = document.getElementById('image-preview-modal');
+            const img = document.getElementById('preview-img');
+            img.src = url;
+            modal.classList.remove('hidden');
+            document.addEventListener('keydown', handleEscClose);
+        }
+        function closeImagePreview() {
+            document.getElementById('image-preview-modal').classList.add('hidden');
+            document.removeEventListener('keydown', handleEscClose);
+        }
+        function handleEscClose(e) {
+            if (e.key === 'Escape') closeImagePreview();
+        }
+
+        // 视频模态框函数
+        function openVideoModal(videoSrc) {
+            const modal = document.getElementById('video-modal');
+            const video = document.getElementById('modal-video');
+            video.querySelector('source').src = videoSrc;
+            video.load();
+            video.play();
+            modal.classList.remove('hidden');
+        }
+        function closeVideoModal() {
+            const modal = document.getElementById('video-modal');
+            const video = document.getElementById('modal-video');
+            video.pause();
+            video.currentTime = 0;
+            modal.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
